@@ -24,8 +24,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          # UPDATED: Bumped to 3.24.3 to support Dart 3.5.0+ (required by flutter_lints 5.0.0)
-          flutter-version: '3.24.3'
+          # UPDATED: Bumped to 3.32.2 to support Dart 3.8.0+ (required by flutter_lints 6.0.0)
+          flutter-version: '3.32.2'
 
       # 1. Decode the Keystore File
       - name: Decode Keystore
