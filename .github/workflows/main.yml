@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository WITH submodules
+      # Checkout repo INCLUDING submodules
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -27,12 +27,24 @@ jobs:
           channel: 'stable'
           flutter-version: '3.32.2'
 
-      # Decode keystore
+      ############################################################
+      # 🔥 FIX: Generate code inside scrobblenaut (DART PACKAGE)
+      ############################################################
+      - name: Generate JSON code in scrobblenaut package
+        run: |
+          cd scrobblenaut
+          dart pub get
+          dart run build_runner build --delete-conflicting-outputs
+          cd ..
+
+      ############################################################
+      # Continue main project setup
+      ############################################################
+
       - name: Decode Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release-key.jks
 
-      # Create key.properties
       - name: Create key.properties
         run: |
           echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" > android/key.properties
@@ -40,7 +52,6 @@ jobs:
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=../release-key.jks" >> android/key.properties
 
-      # Create .env file
       - name: Create .env file
         run: |
           echo "deezerClientId = '${{ secrets.DEEZER_CLIENT_ID }}'" > lib/.env
@@ -51,26 +62,18 @@ jobs:
       - name: Get Dependencies (root)
         run: flutter pub get
 
-      # ----------------------------------------------------
-      # 🔥 IMPORTANT FIX
-      # Run build_runner INSIDE scrobblenaut submodule
-      # ----------------------------------------------------
-      - name: Generate code inside scrobblenaut submodule
-        run: |
-          cd scrobblenaut
-          flutter pub get
-          flutter pub run build_runner build --delete-conflicting-outputs || true
-          cd ..
-
-      # Now run build_runner in the main project
-      - name: Run Build Runner (root)
+      ############################################################
+      # Run build runner for the main Flutter project
+      ############################################################
+      - name: Run Build Runner for main project
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
+      ############################################################
       # Build APK
+      ############################################################
       - name: Build Signed APK
         run: flutter build apk --split-per-abi --release
 
-      # Upload output
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
