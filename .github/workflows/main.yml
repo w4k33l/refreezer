@@ -26,12 +26,10 @@ jobs:
           channel: 'stable'
           flutter-version: '3.32.2'
 
-      # 1. Decode the Keystore File
       - name: Decode Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release-key.jks
 
-      # 2. Create key.properties
       - name: Create key.properties
         run: |
           echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" > android/key.properties
@@ -39,7 +37,6 @@ jobs:
           echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=../release-key.jks" >> android/key.properties
 
-      # 3. Create .env file
       - name: Create .env file
         run: |
           echo "deezerClientId = '${{ secrets.DEEZER_CLIENT_ID }}'" > lib/.env
@@ -47,17 +44,24 @@ jobs:
           echo "lastFmApiKey = '${{ secrets.LASTFM_API_KEY }}'" >> lib/.env
           echo "lastFmApiSecret = '${{ secrets.LASTFM_API_SECRET }}'" >> lib/.env
 
-      - name: Get Dependencies
+      - name: Get Dependencies (root)
         run: flutter pub get
 
-      # ⭐ The critical fix: use FLUTTER to run build_runner
-      - name: Generate .g.dart files
+      # 🔥 Critical fix: run build_runner inside scrobblenaut package
+      - name: Generate code for scrobblenaut subpackage
+        run: |
+          cd scrobblenaut
+          dart pub get
+          dart run build_runner build --delete-conflicting-outputs
+          cd ..
+
+      # Run build_runner in the main Flutter project
+      - name: Generate code for main project
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
       - name: Build Signed APK
         run: flutter build apk --split-per-abi --release
 
-      # 5. Upload Artifacts
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
