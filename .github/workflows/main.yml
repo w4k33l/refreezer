@@ -24,18 +24,15 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.22.2' # Matching the project's badge version for stability
+          # UPDATED: Bumped to 3.24.3 to support Dart 3.5.0+ (required by flutter_lints 5.0.0)
+          flutter-version: '3.24.3'
 
       # 1. Decode the Keystore File
-      # This takes the Base64 secret and saves it as a binary file in android/release-key.jks
       - name: Decode Keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release-key.jks
 
       # 2. Create key.properties
-      # The project expects this file in android/key.properties to know how to sign the app.
-      # Note: storeFile=../release-key.jks points to the file created in the previous step
-      # relative to the android/app folder context usually used by Gradle.
       - name: Create key.properties
         run: |
           echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" > android/key.properties
@@ -44,7 +41,6 @@ jobs:
           echo "storeFile=../release-key.jks" >> android/key.properties
 
       # 3. Create .env file
-      # The project requires this file in lib/.env for API credentials.
       - name: Create .env file
         run: |
           echo "deezerClientId = '${{ secrets.DEEZER_CLIENT_ID }}'" > lib/.env
@@ -56,7 +52,6 @@ jobs:
         run: flutter pub get
 
       # 4. Run Build Runner
-      # This project uses code generation (likely for JSON or databases), so this step is mandatory.
       - name: Run Build Runner
         run: dart run build_runner build --delete-conflicting-outputs
 
@@ -64,7 +59,6 @@ jobs:
         run: flutter build apk --split-per-abi --release
 
       # 5. Upload Artifacts
-      # This uploads the generated APKs to the GitHub Actions run summary page.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
